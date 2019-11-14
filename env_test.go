@@ -298,3 +298,36 @@ func TestMarshalPointer(t *testing.T) {
 		t.Errorf("Expected field '%s' to not exist but got '%s'", "JENKINS_POINTER_MISSING", v)
 	}
 }
+
+type (
+	NestedStruct struct {
+		SubValues   NestedSubStruct `env:"SUB_VALUES"`
+		InnerStruct struct {
+			String string `env:"STRING"`
+		} `env:"INNER"`
+	}
+	NestedSubStruct struct {
+		String string `env:"STRING"`
+	}
+)
+
+func TestUnmarshalNested(t *testing.T) {
+	environ := map[string]string{
+		"SUB_VALUES_STRING": "sub values string",
+		"INNER_STRING":      "inner string",
+	}
+
+	var nestedStruct NestedStruct
+	err := Unmarshal(environ, &nestedStruct)
+	if err != nil {
+		t.Errorf("Expected no error but got '%s'", err)
+	}
+
+	if nestedStruct.SubValues.String != "sub values string" {
+		t.Errorf("Expected field value to be '%s' but got '%s'", "sub values string", nestedStruct.SubValues.String)
+	}
+
+	if nestedStruct.InnerStruct.String != "inner string" {
+		t.Errorf("Expected field value to be '%s' but got '%s'", "inner string", nestedStruct.InnerStruct.String)
+	}
+}

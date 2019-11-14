@@ -22,6 +22,7 @@ import (
 	"os"
 	"reflect"
 	"strconv"
+	"strings"
 )
 
 var (
@@ -48,6 +49,10 @@ var (
 // If the field has a type that is unsupported, Unmarshal returns
 // ErrUnsupportedType.
 func Unmarshal(es EnvSet, v interface{}) error {
+	return unmarshal(es, v, "")
+}
+
+func unmarshal(es EnvSet, v interface{}, parentTag string) error {
 	rv := reflect.ValueOf(v)
 	if rv.Kind() != reflect.Ptr || rv.IsNil() {
 		return ErrInvalidValue
@@ -60,6 +65,11 @@ func Unmarshal(es EnvSet, v interface{}) error {
 
 	t := rv.Type()
 	for i := 0; i < rv.NumField(); i++ {
+
+		typeField := t.Field(i)
+		tag := typeField.Tag.Get("env")
+		fullTag := join(parentTag, tag)
+
 		valueField := rv.Field(i)
 		switch valueField.Kind() {
 		case reflect.Struct:
@@ -68,14 +78,11 @@ func Unmarshal(es EnvSet, v interface{}) error {
 			}
 
 			iface := valueField.Addr().Interface()
-			err := Unmarshal(es, iface)
+			err := unmarshal(es, iface, fullTag)
 			if err != nil {
 				return err
 			}
 		}
-
-		typeField := t.Field(i)
-		tag := typeField.Tag.Get("env")
 		if tag == "" {
 			continue
 		}
@@ -84,7 +91,7 @@ func Unmarshal(es EnvSet, v interface{}) error {
 			return ErrUnexportedField
 		}
 
-		envVar, ok := es[tag]
+		envVar, ok := es[fullTag]
 		if !ok {
 			continue
 		}
@@ -93,10 +100,21 @@ func Unmarshal(es EnvSet, v interface{}) error {
 		if err != nil {
 			return err
 		}
-		delete(es, tag)
+		delete(es, fullTag)
 	}
 
 	return nil
+}
+
+func join(parent, tag string) string {
+	var parts = make([]string, 0)
+	if parent != "" {
+		parts = append(parts, parent)
+	}
+	if tag != "" {
+		parts = append(parts, tag)
+	}
+	return strings.Join(parts, "_")
 }
 
 func set(t reflect.Type, f reflect.Value, value string) error {
@@ -157,6 +175,10 @@ func UnmarshalFromEnviron(v interface{}) (EnvSet, error) {
 //
 // Nested structs are traversed recursively.
 func Marshal(v interface{}) (EnvSet, error) {
+	return marshal(v, "")
+}
+
+func marshal(v interface{}, parentTag string) (EnvSet, error) {
 	rv := reflect.ValueOf(v)
 	if rv.Kind() != reflect.Ptr || rv.IsNil() {
 		return nil, ErrInvalidValue
@@ -170,6 +192,11 @@ func Marshal(v interface{}) (EnvSet, error) {
 	es := make(EnvSet)
 	t := rv.Type()
 	for i := 0; i < rv.NumField(); i++ {
+
+		typeField := t.Field(i)
+		tag := typeField.Tag.Get("env")
+		fullTag := join(parentTag, tag)
+
 		valueField := rv.Field(i)
 		switch valueField.Kind() {
 		case reflect.Struct:
@@ -178,7 +205,7 @@ func Marshal(v interface{}) (EnvSet, error) {
 			}
 
 			iface := valueField.Addr().Interface()
-			nes, err := Marshal(iface)
+			nes, err := marshal(iface, fullTag)
 			if err != nil {
 				return nil, err
 			}
@@ -188,8 +215,6 @@ func Marshal(v interface{}) (EnvSet, error) {
 			}
 		}
 
-		typeField := t.Field(i)
-		tag := typeField.Tag.Get("env")
 		if tag == "" {
 			continue
 		}
@@ -198,9 +223,9 @@ func Marshal(v interface{}) (EnvSet, error) {
 			if valueField.IsNil() {
 				continue
 			}
-			es[tag] = fmt.Sprintf("%v", valueField.Elem().Interface())
+			es[fullTag] = fmt.Sprintf("%v", valueField.Elem().Interface())
 		} else {
-			es[tag] = fmt.Sprintf("%v", valueField.Interface())
+			es[fullTag] = fmt.Sprintf("%v", valueField.Interface())
 		}
 	}
 

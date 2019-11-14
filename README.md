@@ -1,10 +1,5 @@
 # go-env
 
-[![Build Status](https://travis-ci.org/Netflix/go-env.svg?branch=master)](https://travis-ci.org/Netflix/go-env)
-[![GoDoc](https://godoc.org/github.com/Netflix/go-env?status.svg)](https://godoc.org/github.com/Netflix/go-env)
-[![NetflixOSS Lifecycle](https://img.shields.io/osslifecycle/Netflix/go-expect.svg)]()
-
-
 Package env provides an `env` struct field tag to marshal and unmarshal environment variables.
 
 ## Usage
@@ -15,20 +10,25 @@ package main
 import (
   "log"
 
-  env "github.com/Netflix/go-env"
+  env "github.com/jamesburns-rts/go-env"
 )
+type (
+    Environment struct {
+      Home string `env:"HOME"`
 
-type Environment struct {
-  Home string `env:"HOME"`
+      Jenkins struct {
+        BuildId     *string `env:"BUILD_ID"`
+        BuildNumber int    `env:"BUILD_NUMBER"`
+        Ci          bool   `env:"CI"`
+      }
 
-  Jenkins struct {
-    BuildId     *string `env:"BUILD_ID"`
-    BuildNumber int    `env:"BUILD_NUMBER"`
-    Ci          bool   `env:"CI"`
-  }
+      App struct {
+          Port int `env:"PORT"`
+      } `env:"APP"`
 
-  Extras env.EnvSet
-}
+      Extras env.EnvSet
+    }
+)
 
 func main() {
   var environment env.Environment
