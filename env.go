@@ -23,6 +23,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 )
 
 var (
@@ -140,6 +141,23 @@ func set(t reflect.Type, f reflect.Value, value string) error {
 			return err
 		}
 		f.SetInt(int64(v))
+	case reflect.Slice:
+		if t.Elem().Kind() != reflect.String {
+			return ErrUnsupportedType
+		}
+		values := strings.Split(value, ",")
+		f.Set(reflect.ValueOf(values))
+	case reflect.Int64:
+		if t == reflect.TypeOf(time.Nanosecond) {
+			d, err := time.ParseDuration(value)
+			if err != nil {
+				return err
+			}
+			f.Set(reflect.ValueOf(d))
+		} else {
+			return ErrUnsupportedType
+		}
+
 	default:
 		return ErrUnsupportedType
 	}

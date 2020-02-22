@@ -49,6 +49,9 @@ type ValidStruct struct {
 	// Additional supported types
 	Int  int  `env:"INT"`
 	Bool bool `env:"BOOL"`
+
+	StringList []string      `env:"STRING_LIST"`
+	Duration   time.Duration `env:"DURATION"`
 }
 
 type UnsupportedStruct struct {
@@ -61,11 +64,13 @@ type UnexportedStruct struct {
 
 func TestUnmarshal(t *testing.T) {
 	environ := map[string]string{
-		"HOME":      "/home/test",
-		"WORKSPACE": "/mnt/builds/slave/workspace/test",
-		"EXTRA":     "extra",
-		"INT":       "1",
-		"BOOL":      "true",
+		"HOME":        "/home/test",
+		"WORKSPACE":   "/mnt/builds/slave/workspace/test",
+		"EXTRA":       "extra",
+		"INT":         "1",
+		"BOOL":        "true",
+		"DURATION":    "5s",
+		"STRING_LIST": "aa,bb,cc",
 	}
 
 	var validStruct ValidStruct
@@ -101,6 +106,17 @@ func TestUnmarshal(t *testing.T) {
 	v, ok := environ["HOME"]
 	if ok {
 		t.Errorf("Expected field '%s' to not exist but got '%s'", "HOME", v)
+	}
+
+	if validStruct.Duration != 5*time.Second {
+		t.Errorf("Expected field '%s' to be '%s' but got '%s'", "DURATION", 5*time.Second, validStruct.Duration)
+	}
+
+	if len(validStruct.StringList) != 3 ||
+		validStruct.StringList[0] != "aa" ||
+		validStruct.StringList[1] != "bb" ||
+		validStruct.StringList[2] != "cc" {
+		t.Errorf("Expected field '%s' to be '%s' but got '%s'", "STRING_LIST", []string{"aa", "bb", "cc"}, validStruct.StringList)
 	}
 
 	v, ok = environ["EXTRA"]
