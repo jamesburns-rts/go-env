@@ -36,6 +36,8 @@ var (
 
 	// ErrUnexportedField returned when a field with tag "env" is not exported.
 	ErrUnexportedField = errors.New("field must be exported")
+
+	TagName = "env"
 )
 
 // Unmarshal parses an EnvSet and stores the result in the value pointed to by
@@ -68,7 +70,7 @@ func unmarshal(es EnvSet, v interface{}, parentTag string) error {
 	for i := 0; i < rv.NumField(); i++ {
 
 		typeField := t.Field(i)
-		tag := typeField.Tag.Get("env")
+		tag := typeField.Tag.Get(TagName)
 		fullTag := join(parentTag, tag)
 
 		valueField := rv.Field(i)
